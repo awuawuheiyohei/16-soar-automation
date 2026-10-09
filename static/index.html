@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOAR 自动化响应平台</title>
+<style>
+  :root{
+    --bg:#0d1117; --bg-elev:#161b22; --bg-hover:#1c2128; --border:#30363d;
+    --fg:#e6edf3; --fg-muted:#8b949e; --fg-dim:#6e7681;
+    --accent:#58a6ff; --green:#3fb950; --red:#f85149; --orange:#d29922;
+    --purple:#bc8cff; --cyan:#39c5cf; --grey:#6e7681;
+    --radius:6px; --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--fg);font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+  a{color:var(--accent);text-decoration:none}
+  code,.mono{font-family:var(--mono);font-size:12px}
+
+  header{border-bottom:1px solid var(--border);background:var(--bg-elev);padding:14px 24px;position:sticky;top:0;z-index:20}
+  .hdr{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .hdr h1{font-size:17px;font-weight:600}
+  .hdr .sub{color:var(--fg-muted);font-size:12px}
+  .hdr .spacer{flex:1}
+
+  nav{display:flex;gap:2px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--bg-elev);position:sticky;top:57px;z-index:19;overflow-x:auto}
+  nav button{background:none;border:none;border-bottom:2px solid transparent;color:var(--fg-muted);
+    padding:10px 14px;cursor:pointer;font-size:13px;white-space:nowrap;font-family:inherit}
+  nav button:hover{color:var(--fg)}
+  nav button.active{color:var(--fg);border-bottom-color:var(--accent)}
+
+  main{padding:20px 24px 60px;max-width:1400px}
+
+  .banner{border:1px solid var(--orange);border-left-width:4px;background:rgba(210,153,34,.08);
+    border-radius:var(--radius);padding:12px 16px;margin-bottom:20px;color:var(--fg)}
+  .banner strong{color:var(--orange)}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px}
+  .card{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+  .card .k{color:var(--fg-muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+  .card .v{font-size:26px;font-weight:600;margin-top:4px;font-family:var(--mono)}
+  .card .x{color:var(--fg-dim);font-size:11px;margin-top:2px}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);
+    color:var(--fg-muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  td{padding:8px 10px;border-bottom:1px solid rgba(48,54,61,.5);vertical-align:top}
+  tr:hover td{background:var(--bg-hover)}
+  .tbl{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+
+  .tag{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;
+    font-family:var(--mono);border:1px solid transparent;white-space:nowrap}
+  .t-red{background:rgba(248,81,73,.15);color:var(--red);border-color:rgba(248,81,73,.4)}
+  .t-orange{background:rgba(210,153,34,.15);color:var(--orange);border-color:rgba(210,153,34,.4)}
+  .t-yellow{background:rgba(210,153,34,.1);color:#e3b341;border-color:rgba(210,153,34,.3)}
+  .t-green{background:rgba(63,185,80,.15);color:var(--green);border-color:rgba(63,185,80,.4)}
+  .t-blue{background:rgba(88,166,255,.15);color:var(--accent);border-color:rgba(88,166,255,.4)}
+  .t-purple{background:rgba(188,140,255,.15);color:var(--purple);border-color:rgba(188,140,255,.4)}
+  .t-cyan{background:rgba(57,197,207,.15);color:var(--cyan);border-color:rgba(57,197,207,.4)}
+  .t-grey{background:rgba(110,118,129,.2);color:var(--fg-muted);border-color:var(--border)}
+
+  button.btn{background:var(--bg-elev);border:1px solid var(--border);color:var(--fg);
+    padding:4px 10px;border-radius:var(--radius);cursor:pointer;font-size:12px;font-family:inherit}
+  button.btn:hover{background:var(--bg-hover);border-color:var(--fg-dim)}
+  button.btn.primary{background:rgba(63,185,80,.15);border-color:rgba(63,185,80,.5);color:var(--green)}
+  button.btn.danger{background:rgba(248,81,73,.12);border-color:rgba(248,81,73,.4);color:var(--red)}
+
+  .note{color:var(--fg-dim);font-size:11px;padding:8px 12px;background:rgba(110,118,129,.08);
+    border-top:1px solid var(--border)}
+  .explain{color:var(--fg-muted);font-size:11px;font-family:var(--mono);line-height:1.5}
+  .mono-sm{font-family:var(--mono);font-size:11px;color:var(--fg-muted)}
+  .hidden{display:none}
+  .row-actions{display:flex;gap:6px;flex-wrap:wrap}
+  input,select{background:var(--bg);border:1px solid var(--border);color:var(--fg);
+    padding:5px 8px;border-radius:var(--radius);font-size:12px;font-family:inherit}
+  .toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+  h2{font-size:14px;margin:22px 0 10px;font-weight:600}
+  h2:first-child{margin-top:0}
+  .timeline{border-left:2px solid var(--border);margin-left:6px;padding-left:14px}
+  .tstep{position:relative;padding:5px 0}
+  .tstep::before{content:"";position:absolute;left:-20px;top:12px;width:8px;height:8px;
+    border-radius:50%;background:var(--grey)}
+  .tstep.s-SUCCESS::before,.tstep.s-DRY_RUN_OK::before{background:var(--green)}
+  .tstep.s-FAILED::before{background:var(--red)}
+  .tstep.s-ROLLED_BACK::before{background:var(--orange)}
+  .tstep.s-SKIPPED::before{background:var(--grey)}
+  .tstep.rb{margin-left:16px;opacity:.85}
+  .err{color:var(--red);font-size:11px;font-family:var(--mono)}
+  .flash{position:fixed;bottom:20px;right:20px;padding:10px 16px;border-radius:var(--radius);
+    background:var(--bg-elev);border:1px solid var(--border);display:none;z-index:50;font-size:13px}
+  .flash.ok{border-color:var(--green);color:var(--green)}
+  .flash.err{border-color:var(--red);color:var(--red)}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <h1>SOAR 自动化响应平台</h1>
+    <span class="sub">Security Orchestration, Automation &amp; Response</span>
+    <span class="spacer"></span>
+    <span class="tag t-purple">v1.0.0</span>
+    <span class="tag t-grey">执行器：本地模拟器</span>
+  </div>
+</header>
+
+<nav>
+  <button class="active" data-tab="overview">总览</button>
+  <button data-tab="alerts">告警分诊</button>
+  <button data-tab="playbooks">Playbook 编排</button>
+  <button data-tab="runs">执行与回滚</button>
+  <button data-tab="approvals">审批队列</button>
+  <button data-tab="tuning">误报治理</button>
+  <button data-tab="audit">审计日志</button>
+</nav>
+
+<main>
+  <div class="banner">
+    <strong>⚠ 演示数据声明：</strong>
+    本平台全部数据均为<strong>合成演示数据</strong>，账号、主机、IP、告警载荷都是虚构的。
+    项目<strong>没有对接任何真实 SIEM / SOAR / EDR / IdP 产品</strong>
+    （Splunk、Microsoft Sentinel、Cortex XDR、CrowdStrike 等均未接入），
+    playbook 中的所有 action 由<strong>本地确定性模拟器</strong>执行，
+    <strong>不会对任何真实系统产生变更</strong>。本项目也没有处理过任何真实安全事件或客户数据。
+  </div>
+
+  <div id="view"></div>
+</main>
+
+<div class="flash" id="flash"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+  ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+function flash(msg, ok=true){
+  const f = $("#flash");
+  f.textContent = msg;
+  f.className = "flash " + (ok ? "ok" : "err");
+  f.style.display = "block";
+  setTimeout(() => f.style.display = "none", 3200);
+}
+
+async function api(path, opts){
+  const r = await fetch("/api" + path, opts);
+  const data = await r.json().catch(() => ({}));
+  if(!r.ok) throw new Error(data.detail || ("HTTP " + r.status));
+  return data;
+}
+
+const post = (path, body) => api(path, {
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify(body || {})
+});
+
+function sevTag(s){
+  const m = {CRITICAL:"t-red", HIGH:"t-orange", MEDIUM:"t-yellow", LOW:"t-grey"};
+  return `<span class="tag ${m[s]||"t-grey"}">${esc(s)}</span>`;
+}
+function priTag(p){
+  const m = {P1:"t-red", P2:"t-orange", P3:"t-blue", P4:"t-grey"};
+  return `<span class="tag ${m[p]||"t-grey"}">${esc(p)}</span>`;
+}
+function runTag(s){
+  const m = {
+    COMPLETED:"t-green", FAILED:"t-red", ROLLED_BACK:"t-orange",
+    PENDING_APPROVAL:"t-purple", CANCELLED:"t-grey", RUNNING:"t-blue"
+  };
+  return `<span class="tag ${m[s]||"t-grey"}">${esc(s)}</span>`;
+}
+function stepTag(s){
+  const m = {
+    SUCCESS:"t-green", DRY_RUN_OK:"t-cyan", FAILED:"t-red",
+    ROLLED_BACK:"t-orange", SKIPPED:"t-grey"
+  };
+  return `<span class="tag ${m[s]||"t-grey"}">${esc(s)}</span>`;
+}
+function tbl(cols, rows){
+  if(!rows.length) return `<div class="note">暂无数据</div>`;
+  return `<div class="tbl"><table><thead><tr>${
+    cols.map(c => `<th>${esc(c)}</th>`).join("")
+  }</tr></thead><tbody>${
+    rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")
+  }</tbody></table></div>`;
+}
+function card(k, v, x){
+  return `<div class="card"><div class="k">${esc(k)}</div>
+    <div class="v">${esc(v)}</div>${x ? `<div class="x">${esc(x)}</div>` : ""}</div>`;
+}
+
+/* ================= 总览 ================= */
+async function viewOverview(){
+  const d = await api("/overview");
+  const pri = d.alerts_by_priority, run = d.runs_by_status, act = d.action_steps_by_status;
+
+  $("#view").innerHTML = `
+    <div class="cards">
+      ${card("告警总数", d.total_alerts, `原始事件已去重聚合`)}
+      ${card("P1 告警", pri.P1 || 0, `P2 ${pri.P2||0} · P3 ${pri.P3||0} · P4 ${pri.P4||0}`)}
+      ${card("待人工审批", d.pending_approvals, "卡在审批门，未执行任何步骤")}
+      ${card("已回滚执行", run.ROLLED_BACK || 0, `失败 ${run.FAILED || 0} · 完成 ${run.COMPLETED || 0}`)}
+      ${card("执行步骤总数", Object.values(act).reduce((a,b)=>a+b,0),
+              `成功 ${act.SUCCESS||0} · 预演 ${act.DRY_RUN_OK||0} · 失败 ${act.FAILED||0}`)}
+      ${card("误报率", d.false_positive_rate + "%", `${d.false_positives} 条已标记误报`)}
+    </div>
+
+    <h2>待处理高优先级告警</h2>
+    ${tbl(["ID","优先级","分数","严重度","实体","状态","规则"],
+      d.top_alerts.map(a => [
+        `<code>${esc(a.alert_id)}</code>`, priTag(a.priority_level), `<b>${a.priority_score}</b>`,
+        sevTag(a.severity), esc(a.entity_value),
+        `<span class="tag t-grey">${esc(a.status)}</span>`,
+        `<span class="mono-sm">${esc(a.rule_id)}</span>`
+      ]))}
+
+    <h2>需要调优的检测规则（误报率 ≥ 30% 且样本 ≥ 5）</h2>
+    ${d.rules_needing_tuning.length
+      ? tbl(["规则","名称","告警数","误报数","误报率"], d.rules_needing_tuning.map(r => [
+          `<code>${esc(r.rule_id)}</code>`, esc(r.name), r.total_alerts, r.false_positives,
+          `<b style="color:var(--orange)">${Math.round(r.false_positives*100/r.total_alerts)}%</b>`
+        ]))
+      : `<div class="note">当前没有误报率超阈值的规则</div>`}
+
+    <h2>最近执行</h2>
+    ${tbl(["RUN","Playbook","模式","状态","审批人","告警","摘要"], d.recent_runs.map(r => [
+      `<code>${esc(r.run_id)}</code>`, esc(r.playbook_name),
+      `<span class="tag ${r.mode==="LIVE"?"t-red":"t-cyan"}">${esc(r.mode)}</span>`,
+      runTag(r.status),
+      r.approved_by ? `<span class="mono-sm">${esc(r.approved_by)}</span>` : `<span class="mono-sm">—</span>`,
+      esc(r.alert_title || "—"),
+      `<span class="mono-sm">${esc(r.summary || "")}</span>`
+    ]))}
+  `;
+}
+
+/* ================= 告警 ================= */
+async function viewAlerts(){
+  const d = await api("/alerts?limit=200");
+  $("#view").innerHTML = `
+    <div class="toolbar">
+      <input id="q" placeholder="搜索标题 / 实体…" style="min-width:240px">
+      <select id="fStatus">
+        <option value="">全部状态</option>
+        ${["NEW","CORRELATED","TRIAGED","IN_PLAYBOOK","RESOLVED","FALSE_POSITIVE"]
+          .map(s=>`<option>${s}</option>`).join("")}
+      </select>
+      <select id="fRule"><option value="">全部规则</option>
+        ${[1,2,3,4,5,6].map(i=>`<option value="KQL-00${i}">KQL-00${i}</option>`).join("")}
+      </select>
+    </div>
+    <div id="list"></div>`;
+
+  const render = async () => {
+    const p = new URLSearchParams({limit:200});
+    if($("#q").value) p.set("search", $("#q").value);
+    if($("#fStatus").value) p.set("status", $("#fStatus").value);
+    if($("#fRule").value) p.set("rule_id", $("#fRule").value);
+    const r = await api("/alerts?" + p.toString());
+
+    $("#list").innerHTML = tbl(
+      ["ID","优先级","严重度","实体","规则","状态","原始事件","关联","说明"],
+      r.alerts.map(a => [
+        `<code>${esc(a.alert_id)}</code>`,
+        `${priTag(a.priority_level)} <b>${a.priority_score}</b>`,
+        sevTag(a.severity),
+        `${esc(a.entity_value)}<div class="mono-sm">${esc(a.entity_type)}${a.source_ip?" · "+esc(a.source_ip):""}</div>`,
+        `<span class="mono-sm">${esc(a.rule_id)}</span>`,
+        `<span class="tag t-grey">${esc(a.status)}</span>`,
+        a.alert_count,
+        a.correlation_count,
+        `<button class="btn" onclick="detailAlert('${a.alert_id}')">详情</button>`
+      ]));
+  };
+
+  $("#q").oninput = render;
+  $("#fStatus").onchange = render;
+  $("#fRule").onchange = render;
+  await render();
+}
+
+async function detailAlert(id){
+  const a = await api("/alerts/" + id);
+  $("#view").innerHTML = `
+    <h2><code>${esc(a.alert_id)}</code> · ${esc(a.title)}</h2>
+    <div class="tbl" style="padding:14px">
+      <div class="explain" style="margin-bottom:12px">${esc(a.explanation)}</div>
+      ${tbl(["字段","值"],[
+        ["规则", `${esc(a.rule_id)} — ${esc(a.rule_name)}`],
+        ["战术 (ATT&CK)", esc(a.tactic || "—")],
+        ["数据源", esc(a.data_source || "—")],
+        ["实体", `${esc(a.entity_type)}:${esc(a.entity_value)}`],
+        ["来源 IP", esc(a.source_ip || "—")],
+        ["优先级", `${a.priority_level} (${a.priority_score})`],
+        ["评分构成", `severity ${a.severity_component} + entity ${a.entity_component} + corroboration ${a.corroboration_component} + recency ${a.recency_component}`],
+        ["原始事件数", a.alert_count],
+        ["检测时间", esc(a.detected_at)],
+        ["已知误报场景", esc(a.tuning_notes || "—")]
+      ])}
+    </div>
+
+    <h2>关联告警（${a.correlations.length}）</h2>
+    ${tbl(["关联 ID","类型","置信度","标题","实体","优先级"], a.correlations.map(c => [
+      `<code>${esc(c.related_alert_id)}</code>`,
+      `<span class="tag t-cyan">${esc(c.correlation_type)}</span>`,
+      c.confidence,
+      esc(c.related_title), esc(c.related_entity), priTag(c.related_priority)
+    ]))}
+
+    <h2>触发的 Playbook 执行</h2>
+    ${tbl(["RUN","Playbook","模式","状态","审批人","摘要"], a.playbook_runs.map(r => [
+      `<code>${esc(r.run_id)}</code>`, esc(r.playbook_name),
+      `<span class="tag ${r.mode==="LIVE"?"t-red":"t-cyan"}">${esc(r.mode)}</span>`,
+      runTag(r.status), esc(r.approved_by || "—"), `<span class="mono-sm">${esc(r.summary||"")}</span>`
+    ]))}
+
+    <h2>标记为误报</h2>
+    <div class="toolbar">
+      <select id="fpCat">
+        <option value="VPN_EXIT_IP">VPN 出口 IP 变化</option>
+        <option value="BUSINESS_TRAVEL">正常出差</option>
+        <option value="MAINTENANCE_WINDOW">维护窗口</option>
+        <option value="NEW_APP_AUTHORIZED">新服务已获批</option>
+        <option value="PASSWORD_MANAGER">密码管理器重复提交</option>
+        <option value="SCANNER_MISCONFIG">扫描器配置错误</option>
+        <option value="DUPLICATE_EVENT">重复事件</option>
+        <option value="OTHER">其他</option>
+      </select>
+      <input id="fpTarget" placeholder="建议抑制对象（可选）" style="min-width:220px">
+      <button class="btn danger" onclick="markFP('${a.alert_id}')">提交误报反馈</button>
+    </div>
+    <div class="note">提交后会自动重算该规则的误报率并生成调优建议（见「误报治理」标签页）。</div>
+
+    <div style="margin-top:20px"><button class="btn" onclick="viewAlerts()">← 返回告警列表</button></div>`;
+}
+
+async function markFP(id){
+  try{
+    const r = await post(`/alerts/${id}/false-positive`, {
+      reason_category: $("#fpCat").value,
+      suppression_target: $("#fpTarget").value || null,
+      reason_text: "analyst marked as false positive from dashboard"
+    });
+    flash(`已记录 ${r.fp_id}，该规则误报率 ${r.rule_tuning.fp_rate}%（${r.rule_tuning.status}）`);
+    detailAlert(id);
+  }catch(e){ flash(e.message, false); }
+}
+
+/* ================= Playbook ================= */
+async function viewPlaybooks(){
+  const d = await api("/playbooks");
+  let html = `<div class="note">每个 action 标注了是否<b>破坏性</b>、是否<b>需人工审批</b>、
+    以及配套的<b>补偿动作</b>。所有 action 均由本地模拟器执行，不会产生真实变更。</div><br>`;
+
+  for(const pb of d.playbooks){
+    const full = await api("/playbooks/" + pb.playbook_id);
+    html += `<h2>${esc(pb.playbook_id)} · ${esc(pb.name)}
+      ${pb.approval_gated_actions ? `<span class="tag t-purple">需人工审批</span>`
+                                  : `<span class="tag t-green">可自动执行</span>`}</h2>
+      <div class="explain" style="margin-bottom:6px">${esc(pb.description)}</div>
+      <div class="mono-sm" style="margin-bottom:8px">触发规则 ${esc(pb.trigger_rule_id)}
+        · ${pb.action_count} 步 · ${pb.destructive_actions} 个破坏性
+        · ${pb.approval_gated_actions} 个需审批 · 已执行 ${pb.run_count} 次</div>`;
+
+    html += tbl(["#","动作","说明","系统","破坏性","需审批","补偿动作","模拟 connector"],
+      full.actions.map(a => [
+        a.step_no,
+        `<code>${esc(a.action_type)}</code>`,
+        esc(a.description),
+        `<span class="mono-sm">${esc(a.target_system)}</span>`,
+        a.is_destructive ? `<span class="tag t-red">是</span>` : `<span class="tag t-grey">否</span>`,
+        a.requires_approval ? `<span class="tag t-purple">是</span>` : `<span class="tag t-grey">否</span>`,
+        a.compensating_action ? `<span class="tag t-cyan">${esc(a.compensating_action)}</span>` : "—",
+        `<span class="mono-sm">${esc(a.simulated_connector || "—")}</span>`
+      ]));
+
+    html += `<div class="toolbar" style="margin-top:10px">
+      <button class="btn" onclick="triggerRun('${pb.playbook_id}','DRY_RUN')">▶ DRY-RUN 预演</button>
+      <button class="btn primary" onclick="triggerRun('${pb.playbook_id}','LIVE')">⚡ LIVE 执行（可能挂审批）</button>
+    </div>`;
+  }
+  $("#view").innerHTML = html;
+}
+
+async function triggerRun(pbId, mode){
+  const alerts = await api("/alerts?limit=200");
+  const first = alerts.alerts.find(a => a.status !== "FALSE_POSITIVE");
+  const alertId = first ? first.alert_id : null;
+  if(mode === "LIVE" && !confirm(
+      `确认以 LIVE 模式触发 ${pbId}？\n\n` +
+      `若该 playbook 含破坏性且需审批的步骤，本次调用只会创建执行实例并挂起审批，` +
+      `不会执行任何步骤。`)) return;
+  try{
+    const r = await post(`/playbooks/${pbId}/run`, {mode, alert_id: alertId, actor: "dashboard"});
+    flash(r.status === "PENDING_APPROVAL"
+      ? `已创建 ${r.run_id}，等待人工审批（尚未执行任何步骤）`
+      : `${r.run_id} → ${r.status}`, true);
+    viewRuns();
+  }catch(e){ flash(e.message, false); }
+}
+
+/* ================= 执行 ================= */
+async function viewRuns(){
+  const d = await api("/runs?limit=100");
+  let html = tbl(
+    ["RUN","Playbook","模式","状态","审批人","成功/总数","摘要","操作"],
+    d.runs.map(r => [
+      `<code>${esc(r.run_id)}</code>`,
+      `${esc(r.playbook_id)}<div class="mono-sm">${esc(r.playbook_name)}</div>`,
+      `<span class="tag ${r.mode==="LIVE"?"t-red":"t-cyan"}">${esc(r.mode)}</span>`,
+      runTag(r.status),
+      r.approved_by ? `<span class="mono-sm">${esc(r.approved_by)}</span>` : `<span class="mono-sm">—</span>`,
+      `${r.steps_succeeded}/${r.steps_total}`,
+      `<span class="mono-sm">${esc(r.summary||"")}</span>`,
+      `<div class="row-actions">
+        <button class="btn" onclick="detailRun('${r.run_id}')">时间线</button>
+        ${r.status === "PENDING_APPROVAL" ? `
+          <button class="btn primary" onclick="decide('${r.run_id}','approve')">批准</button>
+          <button class="btn danger" onclick="decide('${r.run_id}','reject')">拒绝</button>` : ""}
+        ${r.mode === "LIVE" && ["COMPLETED","FAILED"].includes(r.status) ? `
+          <button class="btn" onclick="doRollback('${r.run_id}')">回滚</button>` : ""}
+      </div>`
+    ]));
+
+  $("#view").innerHTML = `<h2>Playbook 执行实例</h2>` + html +
+    `<div class="note" style="margin-top:14px">
+      DRY_RUN 不会产生任何实际效果；LIVE 模式下的破坏性步骤需人工批准。
+      失败时引擎会逆序执行已成功破坏性步骤的补偿动作。
+      重复点击「执行」是幂等的 —— 同一 run 不会重复执行任何步骤。</div>`;
+}
+
+async function detailRun(id){
+  const r = await api("/runs/" + id);
+  const steps = r.steps.map(s => `
+    <div class="tstep s-${esc(s.status)} ${s.is_rollback ? "rb" : ""}">
+      ${s.is_rollback ? `<span class="tag t-cyan">补偿</span> ` : ""}
+      <b>${esc(s.step_no)}. ${esc(s.action_type)}</b>
+      ${stepTag(s.status)}
+      ${s.requires_approval ? `<span class="tag t-purple">需审批</span>` : ""}
+      ${s.is_destructive ? `<span class="tag t-red">破坏性</span>` : ""}
+      <div class="mono-sm">${esc(s.description || "")}</div>
+      ${s.output ? `<div class="mono-sm">→ ${esc(s.output.message || "")}</div>` : ""}
+      ${s.error ? `<div class="err">✗ ${esc(s.error)}</div>` : ""}
+      ${s.approved_by ? `<div class="mono-sm">审批人：${esc(s.approved_by)}</div>` : ""}
+    </div>`).join("");
+
+  $("#view").innerHTML = `
+    <h2><code>${esc(r.run_id)}</code> · ${esc(r.playbook_name)} ${runTag(r.status)}</h2>
+    <div class="explain" style="margin-bottom:12px">
+      模式 ${esc(r.mode)} · 触发人 ${esc(r.triggered_by)} · 告警 ${esc(r.alert_id || "—")}
+      · ${esc(r.summary || "")}
+      ${r.approval_reason ? `<br>审批：${esc(r.approved_by)} — ${esc(r.approval_reason)}` : ""}
+      ${r.rejection_reason ? `<br>拒绝：${esc(r.rejected_by)} — ${esc(r.rejection_reason)}` : ""}
+      ${r.rolled_back_from ? `<br>本执行是对 <code>${esc(r.rolled_back_from)}</code> 的回滚` : ""}
+    </div>
+
+    <h2>执行时间线</h2>
+    <div class="timeline">${steps || "<div class='note'>尚未执行任何步骤</div>"}</div>
+
+    <h2>审批记录</h2>
+    ${tbl(["ID","请求人","时间","决定","审批人","理由","过期时间"], r.approvals.map(a => [
+      `<code>${esc(a.approval_id)}</code>`, esc(a.requested_by), esc(a.requested_at),
+      `<span class="tag ${a.decision==="APPROVED"?"t-green":a.decision==="REJECTED"?"t-red":"t-grey"}">${esc(a.decision)}</span>`,
+      esc(a.approver || "—"), esc(a.decision_reason || "—"), esc(a.expires_at || "—")
+    ]))}
+
+    <h2>该执行实例的审计记录</h2>
+    ${tbl(["#","时间","操作人","动作","详情"], r.audit.map(a => [
+      a.audit_id, esc(a.occurred_at), esc(a.actor || "—"),
+      `<span class="tag t-blue">${esc(a.action)}</span>`,
+      `<span class="mono-sm">${esc(JSON.stringify(a.details))}</span>`
+    ]))}
+
+    <div style="margin-top:20px"><button class="btn" onclick="viewRuns()">← 返回执行列表</button></div>`;
+}
+
+async function decide(runId, action){
+  const approver = prompt("请输入审批人（approver）:");
+  if(!approver) return;
+  const reason = prompt("请输入理由（必填，会记入审计）:");
+  if(!reason) return;
+  try{
+    await post(`/runs/${runId}/${action}`, {approver, reason});
+    flash(`${runId} ${action === "approve" ? "已批准并执行" : "已拒绝"}`, true);
+    viewRuns();
+  }catch(e){ flash(e.message, false); }
+}
+
+async function doRollback(runId){
+  const reason = prompt("回滚原因（会记入审计）:");
+  if(reason === null) return;
+  try{
+    const r = await post(`/runs/${runId}/rollback`, {actor:"dashboard", reason});
+    flash(`已创建回滚执行 ${r.run_id}（原 run ${r.original_run_id}）`, true);
+    viewRuns();
+  }catch(e){ flash(e.message, false); }
+}
+
+/* ================= 审批队列 ================= */
+async function viewApprovals(){
+  const d = await api("/approvals");
+  $("#view").innerHTML = `
+    <h2>审批队列</h2>
+    <div class="cards">
+      ${Object.entries(d.by_decision).map(([k,v]) => card(k, v)).join("")}
+    </div>
+    ${tbl(["ID","RUN","Playbook","受控动作","告警","请求人","决定","审批人","理由","操作"], d.approvals.map(a => [
+      `<code>${esc(a.approval_id)}</code>`, `<code>${esc(a.run_id)}</code>`,
+      esc(a.playbook_name),
+      `<span class="tag t-purple">${esc(a.gated_action_types || "—")}</span>`,
+      esc(a.alert_title || "—"), esc(a.requested_by),
+      `<span class="tag ${a.decision==="APPROVED"?"t-green":a.decision==="REJECTED"?"t-red":a.decision==="EXPIRED"?"t-orange":"t-grey"}">${esc(a.decision)}</span>`,
+      esc(a.approver || "—"), `<span class="mono-sm">${esc(a.decision_reason || "—")}</span>`,
+      a.decision === "PENDING" ? `<div class="row-actions">
+        <button class="btn primary" onclick="decide('${a.run_id}','approve')">批准</button>
+        <button class="btn danger" onclick="decide('${a.run_id}','reject')">拒绝</button></div>` : "—"
+    ]))}
+    <div class="note" style="margin-top:14px">
+      审批请求 4 小时未处理会自动标记为 EXPIRED 并取消对应执行 —— 无人响应的审批不能无限期挂起。</div>`;
+}
+
+/* ================= 误报治理 ================= */
+async function viewTuning(){
+  const d = await api("/tuning");
+  const fp = await api("/false-positives");
+  $("#view").innerHTML = `
+    <h2>各检测规则误报率与调优建议</h2>
+    ${tbl(["规则","告警数","误报数","误报率","判定","样本是否可信","建议阈值","调优策略"], d.tuning.map(t => [
+      `<code>${esc(t.rule_id)}</code>`, t.total_alerts, t.false_positives,
+      `<b style="color:${t.fp_rate>=30?"var(--orange)":"var(--fg)"}">${t.fp_rate}%</b>`,
+      `<span class="tag ${t.status==="NEEDS_TUNING"?"t-orange":"t-green"}">${esc(t.status)}</span>`,
+      t.low_confidence ? `<span class="tag t-purple">样本不足</span>` : `<span class="tag t-grey">是</span>`,
+      t.suggested_threshold ?? "—",
+      t.suggestions.length
+        ? t.suggestions.map(s => `<div class="mono-sm">· ${esc(s.reason_category)} ×${s.count}<br>
+            <span style="color:var(--fg-muted)">${esc(s.strategy)}</span></div>`).join("")
+        : `<span class="mono-sm">维持现状</span>`
+    ]))}
+    <div class="note" style="margin-top:12px">
+      样本量 &lt; 5 的规则会被标记为「样本不足」：3 个样本里 2 个误报不足以说明规则有问题，
+      此时引擎<b>不会</b>建议调整阈值 —— 避免拿噪声去改生产规则。</div>
+
+    <h2>误报分类分布</h2>
+    ${tbl(["分类","条数"], fp.by_category.map(c => [
+      `<span class="tag t-cyan">${esc(c.reason_category)}</span>`, c.n]))}
+
+    <h2>误报反馈明细</h2>
+    ${tbl(["ID","规则","实体","分类","说明","建议抑制对象","建议阈值"], fp.feedback.map(f => [
+      `<code>${esc(f.fp_id)}</code>`, `<span class="mono-sm">${esc(f.rule_id)}</span>`,
+      esc(f.entity_value),
+      `<span class="tag t-grey">${esc(f.reason_category)}</span>`,
+      `<span class="mono-sm">${esc(f.reason_text || "")}</span>`,
+      `<span class="mono-sm">${esc(f.suppression_target || "—")}</span>`,
+      f.recommended_threshold ?? "—"
+    ]))}`;
+}
+
+/* ================= 审计 ================= */
+async function viewAudit(){
+  const d = await api("/audit?limit=200");
+  $("#view").innerHTML = `
+    <h2>全链路审计（最近 ${d.count} / 共 ${d.total_entries} 条）</h2>
+    ${tbl(["#","时间","操作人","动作","实体","详情"], d.entries.map(e => [
+      e.audit_id, `<span class="mono-sm">${esc(e.occurred_at)}</span>`,
+      esc(e.actor || "—"),
+      `<span class="tag t-blue">${esc(e.action)}</span>`,
+      `<span class="mono-sm">${esc(e.entity_type||"")}:${esc(e.entity_id||"")}</span>`,
+      `<span class="mono-sm">${esc(JSON.stringify(e.details))}</span>`
+    ]))}`;
+}
+
+/* ================= 路由 ================= */
+const VIEWS = {
+  overview: viewOverview, alerts: viewAlerts, playbooks: viewPlaybooks,
+  runs: viewRuns, approvals: viewApprovals, tuning: viewTuning, audit: viewAudit
+};
+
+document.querySelectorAll("nav button").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll("nav button").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    VIEWS[b.dataset.tab]().catch(e => {
+      $("#view").innerHTML = `<div class="note" style="color:var(--red)">加载失败：${esc(e.message)}</div>`;
+    });
+  };
+});
+
+viewOverview().catch(e => {
+  $("#view").innerHTML = `<div class="note" style="color:var(--red)">加载失败：${esc(e.message)}</div>`;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+[project]
+name = "soar-automation-platform"
+version = "1.0.0"
+description = "受控自动化响应平台：告警摄取去重 → Playbook 编排 → 人工审批门 → 幂等执行与补偿回滚 → 全链路审计"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "httpx>=0.27",
+]
+
+[project.scripts]
+soar = "main:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+# 刻意不使用 python-multipart：本项目用标准库手写 url-encoded 解析器
+# （见 app/models/formparse.py），不为解析几个键值对引入额外依赖与供应链面。
